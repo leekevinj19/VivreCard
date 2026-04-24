@@ -9,10 +9,10 @@ struct VivreUser: Identifiable, Codable {
     var email: String
     var avatarURL: String?
     var crewName: String?                  // One Piece themed "group" name
-    var pirateBounty: Int                  // Fun gamification — increases with activity
+    var pirateBounty: Int                  // Future stuff to make it like a game
     var latitude: Double
     var longitude: Double
-    var heading: Double                    // Device compass heading in degrees
+    var heading: Double                    // Compass heading in degree
     var isOnline: Bool
     var lastSeen: Date
     var friendIDs: [String]
@@ -52,7 +52,7 @@ struct VivreUser: Identifiable, Codable {
     }
 }
 
-// MARK: - Friend Request
+// Friend Request
 struct FriendRequest: Identifiable, Codable {
     @DocumentID var id: String?
     var fromUserID: String
@@ -71,7 +71,7 @@ struct FriendRequest: Identifiable, Codable {
     static let collectionName = "friendRequests"
 }
 
-// MARK: - Friend With Live Data (used in UI)
+// Friend w/ live data
 struct LiveFriend: Identifiable {
     let id: String
     var displayName: String
@@ -82,10 +82,10 @@ struct LiveFriend: Identifiable {
     var lastSeen: Date
     var avatarURL: String?
     
-    /// Distance from current user in meters
+    /// Distance in meters
     var distanceFromUser: Double?
     
-    /// Bearing from current user in degrees (0 = north, 90 = east)
+    /// Bearing from user in degrees
     var bearingFromUser: Double?
     
     var formattedDistance: String {
@@ -101,14 +101,14 @@ struct LiveFriend: Identifiable {
     }
 }
 
-// MARK: - Crew (Group of friends)
+// crew
 struct Crew: Identifiable, Codable {
     @DocumentID var id: String?
     var name: String
-    var captainID: String              // Creator of the crew
+    var captainID: String              // captain of crew
     var memberIDs: [String]
     var createdAt: Date
-    var crewJollyRoger: String?        // Custom emoji or symbol
+    var crewJollyRoger: String?        // crew symbol
     
     static let collectionName = "crews"
 }

@@ -7,12 +7,14 @@ struct MainTabView: View {
     enum Tab: String, CaseIterable {
         case friends = "Friends"
         case compass = "Vivre Card"
+        case wanted = "Wanted"
         case profile = "Profile"
-        
+
         var icon: String {
             switch self {
             case .friends: return "person.2.fill"
             case .compass: return "location.north.line.fill"
+            case .wanted: return "scroll.fill"
             case .profile: return "person.crop.circle.fill"
             }
         }
@@ -29,6 +31,8 @@ struct MainTabView: View {
                     })
                 case .compass:
                     CompassView(locationService: locationService)
+                case .wanted:
+                    FamousPiratesView()
                 case .profile:
                     ProfileView()
                 }

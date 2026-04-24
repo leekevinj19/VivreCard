@@ -11,6 +11,16 @@ struct ProfileView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
+                    // Page title
+                    HStack {
+                        Text("Profile")
+                            .font(VivreFont.title(26))
+                            .foregroundColor(.textPrimary)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+
                     // Profile Header
                     profileHeader
 
@@ -33,20 +43,12 @@ struct ProfileView: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
                 }
-                .padding(.top, 20)
                 .padding(.bottom, 100)
                 .frame(maxWidth: .infinity)
             }
             .frame(maxWidth: .infinity)
             .background(BeachBackground(style: .soft).ignoresSafeArea())
-            .navigationTitle("")
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Text("Profile")
-                        .font(VivreFont.title(26))
-                        .foregroundColor(.textPrimary)
-                }
-            }
+            .toolbar(.hidden, for: .navigationBar)
             .alert("Leave the Crew?", isPresented: $showSignOutConfirmation) {
                 Button("Cancel", role: .cancel) { }
                 Button("Sign Out", role: .destructive) {

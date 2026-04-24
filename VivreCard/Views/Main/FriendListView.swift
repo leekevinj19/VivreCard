@@ -18,6 +18,28 @@ struct FriendListView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
+                    // Page header
+                    HStack(alignment: .bottom) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Your Crew")
+                                .font(VivreFont.title(26))
+                                .foregroundColor(.textPrimary)
+                            Text("\(firebase.liveFriends.count) nakama")
+                                .font(VivreFont.caption())
+                                .foregroundColor(.goldRoger)
+                        }
+                        Spacer()
+                        Button {
+                            showAddFriend = true
+                        } label: {
+                            Image(systemName: "person.badge.plus")
+                                .foregroundColor(.goldRoger)
+                                .font(.system(size: 18, weight: .semibold))
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+
                     // Incoming requests banner
                     if !firebase.incomingRequests.isEmpty {
                         RequestsBanner(count: firebase.incomingRequests.count) {
@@ -42,35 +64,12 @@ struct FriendListView: View {
                         .padding(.horizontal, 16)
                     }
                 }
-                .padding(.top, 12)
                 .padding(.bottom, 100)
                 .frame(maxWidth: .infinity)
             }
             .frame(maxWidth: .infinity)
             .background(BeachBackground(style: .soft).ignoresSafeArea())
-            .navigationTitle("")
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Your Crew")
-                            .font(VivreFont.title(26))
-                            .foregroundColor(.textPrimary)
-                        Text("\(firebase.liveFriends.count) nakama")
-                            .font(VivreFont.caption())
-                            .foregroundColor(.goldRoger)
-                    }
-                }
-                
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showAddFriend = true
-                    } label: {
-                        Image(systemName: "person.badge.plus")
-                            .foregroundColor(.goldRoger)
-                            .font(.system(size: 18, weight: .semibold))
-                    }
-                }
-            }
+            .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showAddFriend) {
                 AddFriendSheet()
             }

@@ -46,7 +46,7 @@ class AuthViewModel: ObservableObject {
         }
     }
     
-    // MARK: - Sign Up
+    // Sign Up
     func signUp(email: String, password: String, displayName: String) async {
         await MainActor.run { self.error = nil }
         
@@ -63,7 +63,7 @@ class AuthViewModel: ObservableObject {
         }
     }
     
-    // MARK: - Sign In
+    // Sign In
     func signIn(email: String, password: String) async {
         await MainActor.run { self.error = nil }
         
@@ -79,7 +79,7 @@ class AuthViewModel: ObservableObject {
         }
     }
     
-    // MARK: - Sign Out
+    // Sign Out
     func signOut() {
         do {
             try firebase.signOut()

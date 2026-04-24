@@ -4,7 +4,7 @@ import Combine
 
 class CompassViewModel: ObservableObject {
     
-    // MARK: - Published
+    // Published
     @Published var selectedFriend: LiveFriend?
     @Published var arrowRotation: Double = 0       // Degrees to rotate the vivre card arrow
     @Published var distanceText: String = "---"
@@ -12,7 +12,7 @@ class CompassViewModel: ObservableObject {
     @Published var isTracking: Bool = false
     @Published var cardBurnAmount: Double = 1.0    // 1.0 = full card, 0.0 = tiny fragment (close = bigger)
     
-    // MARK: - Dependencies
+    // Dependencies
     private let locationService: LocationService
     private let firebase = FirebaseService.shared
     private var cancellables = Set<AnyCancellable>()
@@ -34,7 +34,7 @@ class CompassViewModel: ObservableObject {
         }
         .store(in: &cancellables)
         
-        // Also recalculate when friend data updates
+        // REcalculate when friend data updates
         firebase.$liveFriends
             .receive(on: DispatchQueue.main)
             .sink { [weak self] friends in
@@ -50,7 +50,7 @@ class CompassViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
-    // MARK: - Select a friend to track
+    // Select friend
     func selectFriend(_ friend: LiveFriend) {
         selectedFriend = friend
         isTracking = true
@@ -69,7 +69,7 @@ class CompassViewModel: ObservableObject {
         cardBurnAmount = 1.0
     }
     
-    // MARK: - Core Calculation
+    // Calculation
     private func recalculate(userLocation: CLLocation?, deviceHeading: Double) {
         guard let friend = selectedFriend,
               let userLoc = userLocation else { return }
@@ -106,7 +106,7 @@ class CompassViewModel: ObservableObject {
     }
 }
 
-// MARK: - Convenience for animation
+// Convenience for animation
 import SwiftUI
 
 extension CompassViewModel {
