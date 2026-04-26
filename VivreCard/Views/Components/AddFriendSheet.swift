@@ -13,7 +13,6 @@ struct AddFriendSheet: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 24) {
-                // Search field
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Enter their email to send a Vivre Card")
                         .font(VivreFont.body(14))
@@ -40,7 +39,6 @@ struct AddFriendSheet: View {
                 }
                 .padding(.horizontal, 16)
 
-                // Results
                 if isSearching {
                     ProgressView()
                         .tint(.goldRoger)
@@ -126,7 +124,6 @@ struct AddFriendSheet: View {
         }
     }
     
-    // MARK: - Search
     private func search() {
         guard !searchEmail.isEmpty else { return }
         isSearching = true
@@ -136,7 +133,6 @@ struct AddFriendSheet: View {
         
         Task {
             do {
-                // Can't add yourself
                 if searchEmail.lowercased() == firebase.currentUser?.email.lowercased() {
                     throw VivreError.selfRequest
                 }
@@ -159,7 +155,6 @@ struct AddFriendSheet: View {
         }
     }
     
-    // MARK: - Send Request
     private func sendRequest(to user: VivreUser) {
         Task {
             do {

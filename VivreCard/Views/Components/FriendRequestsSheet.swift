@@ -67,7 +67,6 @@ struct FriendRequestsSheet: View {
     }
 }
 
-// MARK: - Request Card
 struct RequestCard: View {
     let request: FriendRequest
     let isProcessing: Bool
@@ -76,7 +75,6 @@ struct RequestCard: View {
     
     var body: some View {
         HStack(spacing: 12) {
-            // Avatar
             Circle()
                 .fill(Color.sunsetOrange.opacity(0.2))
                 .frame(width: 46, height: 46)
@@ -86,7 +84,6 @@ struct RequestCard: View {
                         .foregroundColor(.sunsetOrange)
                 )
             
-            // Info
             VStack(alignment: .leading, spacing: 4) {
                 Text(request.fromUserName)
                     .font(VivreFont.heading(15))
@@ -104,7 +101,6 @@ struct RequestCard: View {
                     .tint(.goldRoger)
             } else {
                 HStack(spacing: 8) {
-                    // Decline
                     Button {
                         onDecline()
                     } label: {
@@ -115,7 +111,6 @@ struct RequestCard: View {
                             .background(Circle().fill(Color.surfaceTertiary))
                     }
                     
-                    // Accept
                     Button {
                         onAccept()
                     } label: {

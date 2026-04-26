@@ -1,29 +1,48 @@
 import Foundation
 import CoreLocation
 import Combine
+import SwiftUI
 
 class CompassViewModel: ObservableObject {
-    
-    // Published
     @Published var selectedFriend: LiveFriend?
-    @Published var arrowRotation: Double = 0       // Degrees to rotate the vivre card arrow
+    @Published var arrowRotation: Double = 0
     @Published var distanceText: String = "---"
     @Published var directionLabel: String = "--"
-    @Published var isTracking: Bool = false
-    @Published var cardBurnAmount: Double = 1.0    // 1.0 = full card, 0.0 = tiny fragment (close = bigger)
-    
-    // Dependencies
+    @Published var isTracking = false
+    @Published var cardBurnAmount: Double = 1.0
+
     private let locationService: LocationService
     private let firebase = FirebaseService.shared
     private var cancellables = Set<AnyCancellable>()
-    
+
     init(locationService: LocationService) {
         self.locationService = locationService
         setupBindings()
     }
-    
+
+    func selectFriend(_ friend: LiveFriend) {
+        selectedFriend = friend
+        isTracking = true
+        recalculate(
+            userLocation: locationService.currentLocation,
+            deviceHeading: locationService.currentHeading
+        )
+    }
+
+    func stopTracking() {
+        selectedFriend = nil
+        isTracking = false
+        arrowRotation = 0
+        distanceText = "---"
+        directionLabel = "--"
+        cardBurnAmount = 1.0
+    }
+
+    var arrowAngle: Angle {
+        .degrees(arrowRotation)
+    }
+
     private func setupBindings() {
-        // Recalculate arrow angle whenever location or heading updates
         Publishers.CombineLatest(
             locationService.$currentLocation,
             locationService.$currentHeading
@@ -33,14 +52,14 @@ class CompassViewModel: ObservableObject {
             self?.recalculate(userLocation: location, deviceHeading: heading)
         }
         .store(in: &cancellables)
-        
-        // REcalculate when friend data updates
+
         firebase.$liveFriends
             .receive(on: DispatchQueue.main)
             .sink { [weak self] friends in
-                guard let self = self,
+                guard let self,
                       let selectedID = self.selectedFriend?.id,
                       let updatedFriend = friends.first(where: { $0.id == selectedID }) else { return }
+
                 self.selectedFriend = updatedFriend
                 self.recalculate(
                     userLocation: self.locationService.currentLocation,
@@ -49,69 +68,29 @@ class CompassViewModel: ObservableObject {
             }
             .store(in: &cancellables)
     }
-    
-    // Select friend
-    func selectFriend(_ friend: LiveFriend) {
-        selectedFriend = friend
-        isTracking = true
-        recalculate(
-            userLocation: locationService.currentLocation,
-            deviceHeading: locationService.currentHeading
-        )
-    }
-    
-    func stopTracking() {
-        selectedFriend = nil
-        isTracking = false
-        arrowRotation = 0
-        distanceText = "---"
-        directionLabel = "--"
-        cardBurnAmount = 1.0
-    }
-    
-    // Calculation
+
     private func recalculate(userLocation: CLLocation?, deviceHeading: Double) {
         guard let friend = selectedFriend,
-              let userLoc = userLocation else { return }
-        
-        let userCoord = userLoc.coordinate
-        let friendCoord = friend.coordinate
-        
-        // Calculate relative angle (what the arrow should point to)
+              let userLocation else { return }
+
+        let userCoordinate = userLocation.coordinate
+        let friendCoordinate = friend.coordinate
         let angle = NavigationMath.relativeAngle(
-            userCoordinate: userCoord,
-            friendCoordinate: friendCoord,
+            userCoordinate: userCoordinate,
+            friendCoordinate: friendCoordinate,
             deviceHeading: deviceHeading
         )
-        
-        // Distance
-        let meters = NavigationMath.distance(from: userCoord, to: friendCoord)
-        
-        // Absolute bearing for compass label
-        let absoluteBearing = NavigationMath.bearing(from: userCoord, to: friendCoord)
-        
-        // Vivre Card "burn" effect — closer friends = card burns down to a smaller fragment
-        // At 0m = 0.15 (tiny piece), at 50km+ = 1.0 (full card)
-        let normalized = min(meters / 50_000, 1.0)
-        let burn = 0.15 + (normalized * 0.85)
-        
-        // Smooth the rotation to avoid jitter
+        let distance = NavigationMath.distance(from: userCoordinate, to: friendCoordinate)
+        let bearing = NavigationMath.bearing(from: userCoordinate, to: friendCoordinate)
+        let normalizedDistance = min(distance / 50_000, 1.0)
+        let burnAmount = 0.15 + (normalizedDistance * 0.85)
+
         withAnimation(.easeOut(duration: 0.3)) {
             arrowRotation = angle
-            cardBurnAmount = burn
+            cardBurnAmount = burnAmount
         }
-        
-        distanceText = NavigationMath.formattedDistance(meters: meters)
-        directionLabel = NavigationMath.compassDirection(from: absoluteBearing)
-    }
-}
 
-// Convenience for animation
-import SwiftUI
-
-extension CompassViewModel {
-    /// Animated rotation as an Angle
-    var arrowAngle: Angle {
-        .degrees(arrowRotation)
+        distanceText = NavigationMath.formattedDistance(meters: distance)
+        directionLabel = NavigationMath.compassDirection(from: bearing)
     }
 }

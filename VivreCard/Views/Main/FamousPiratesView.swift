@@ -1,79 +1,81 @@
 import SwiftUI
 import CoreLocation
 
-// MARK: - Leaderboard Entry (unified model for users + famous pirates)
 enum LeaderboardEntry: Identifiable {
     case user(VivreUser, isCurrentUser: Bool)
     case pirate(FamousPirate)
 
     var id: String {
         switch self {
-        case .user(let u, _): return u.id ?? u.displayName
-        case .pirate(let p): return "pirate-\(p.id)"
+        case .user(let user, _):
+            return user.id ?? user.displayName
+        case .pirate(let pirate):
+            return "pirate-\(pirate.id)"
         }
     }
 
     var bountyValue: Int {
         switch self {
-        case .user(let u, _): return u.pirateBounty
-        case .pirate(let p): return Int(p.bounty.replacingOccurrences(of: ",", with: "")) ?? 0
+        case .user(let user, _):
+            return user.pirateBounty
+        case .pirate(let pirate):
+            return pirate.bounty
         }
     }
 
     var displayName: String {
         switch self {
-        case .user(let u, _): return u.displayName
-        case .pirate(let p): return p.name
+        case .user(let user, _):
+            return user.displayName
+        case .pirate(let pirate):
+            return pirate.name
         }
     }
 
     var formattedBounty: String {
         switch self {
-        case .user(let u, _):
-            let b = u.pirateBounty
-            if b >= 1_000_000_000 { return String(format: "%.2fB", Double(b) / 1_000_000_000) }
-            if b >= 1_000_000     { return String(format: "%.1fM", Double(b) / 1_000_000) }
-            if b >= 1_000         { return String(format: "%.0fK", Double(b) / 1_000) }
-            return "\(b)"
-        case .pirate(let p): return p.bounty
+        case .user(let user, _):
+            return BountyFormatter.compact(user.pirateBounty)
+        case .pirate(let pirate):
+            return BountyFormatter.full(pirate.bounty)
         }
     }
 }
 
-// MARK: - Famous Pirates View
 struct FamousPiratesView: View {
     @StateObject private var jikan = JikanService()
     @ObservedObject private var firebase = FirebaseService.shared
 
-    // Merge users + famous pirates into one sorted list
     private var leaderboard: [LeaderboardEntry] {
         var entries: [LeaderboardEntry] = jikan.famousPirates.map { .pirate($0) }
 
-        // Add current user
-        if let me = firebase.currentUser {
-            entries.append(.user(me, isCurrentUser: true))
+        if let currentUser = firebase.currentUser {
+            entries.append(.user(currentUser, isCurrentUser: true))
         }
 
-        // Add friends
         for friend in firebase.liveFriends {
-            let user = VivreUser(
-                id: friend.id,
-                displayName: friend.displayName,
-                email: "",
-                avatarURL: friend.avatarURL,
-                crewName: friend.crewName,
-                pirateBounty: friend.pirateBounty,
-                latitude: friend.coordinate.latitude,
-                longitude: friend.coordinate.longitude,
-                heading: 0,
-                isOnline: friend.isOnline,
-                lastSeen: friend.lastSeen,
-                friendIDs: [],
-                incomingRequestIDs: [],
-                outgoingRequestIDs: [],
-                createdAt: Date()
+            entries.append(
+                .user(
+                    VivreUser(
+                        id: friend.id,
+                        displayName: friend.displayName,
+                        email: "",
+                        avatarURL: friend.avatarURL,
+                        crewName: friend.crewName,
+                        pirateBounty: friend.pirateBounty,
+                        latitude: friend.coordinate.latitude,
+                        longitude: friend.coordinate.longitude,
+                        heading: 0,
+                        isOnline: friend.isOnline,
+                        lastSeen: friend.lastSeen,
+                        friendIDs: [],
+                        incomingRequestIDs: [],
+                        outgoingRequestIDs: [],
+                        createdAt: Date()
+                    ),
+                    isCurrentUser: false
+                )
             )
-            entries.append(.user(user, isCurrentUser: false))
         }
 
         return entries.sorted { $0.bountyValue > $1.bountyValue }
@@ -82,7 +84,6 @@ struct FamousPiratesView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Page header — always visible
                 HStack(alignment: .bottom) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Wanted!")
@@ -109,7 +110,6 @@ struct FamousPiratesView: View {
                             .foregroundColor(.textSecondary)
                     }
                     Spacer()
-
                 } else if let error = jikan.error {
                     Spacer()
                     VStack(spacing: 12) {
@@ -119,19 +119,17 @@ struct FamousPiratesView: View {
                         Text(error)
                             .font(VivreFont.body(14))
                             .foregroundColor(.textSecondary)
-                        Button("Try Again") { jikan.fetchFamousPirates() }
+                        Button("Try Again") { jikan.fetchFamousPirates(force: true) }
                             .buttonStyle(PirateButtonStyle(color: .goldRoger, isWide: false))
                     }
                     Spacer()
-
                 } else {
                     ScrollView {
                         VStack(spacing: 0) {
-                            // API source label
                             HStack {
-                                Image(systemName: "network")
+                                Image(systemName: "newspaper")
                                     .font(.system(size: 11))
-                                Text("api.jikan.moe/v4/anime/21/characters")
+                                Text("Live wanted board")
                                     .font(VivreFont.caption(11))
                             }
                             .foregroundColor(.textSecondary.opacity(0.5))
@@ -158,31 +156,28 @@ struct FamousPiratesView: View {
     }
 }
 
-// MARK: - Unified Leaderboard Card
 struct LeaderboardCard: View {
     let entry: LeaderboardEntry
     let rank: Int
 
     var body: some View {
         HStack(spacing: 14) {
-
-            // Rank
             Text("#\(rank)")
                 .font(VivreFont.heading(16))
                 .foregroundColor(rank <= 3 ? .goldRoger : .textSecondary.opacity(0.4))
                 .frame(width: 32)
 
-            // Portrait
             portrait
 
-            // Info
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
                     Text(entry.displayName)
                         .font(VivreFont.heading(15))
                         .foregroundColor(.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
 
-                    if case .user(_, let isMe) = entry, isMe {
+                    if case .user(_, let isCurrentUser) = entry, isCurrentUser {
                         Text("YOU")
                             .font(VivreFont.label(8))
                             .foregroundColor(.white)
@@ -196,7 +191,7 @@ struct LeaderboardCard: View {
                     Image(systemName: "star.fill")
                         .font(.system(size: 10))
                         .foregroundColor(.goldRoger)
-                    Text("฿\(entry.formattedBounty)")
+                    Text("Bounty \(entry.formattedBounty)")
                         .font(VivreFont.caption(12))
                         .foregroundColor(.goldRoger)
                 }
@@ -204,15 +199,13 @@ struct LeaderboardCard: View {
 
             Spacer()
 
-            // Right badge
             badge
         }
         .padding(14)
         .vivreCard()
         .overlay(
-            // Highlight current user's card
             Group {
-                if case .user(_, let isMe) = entry, isMe {
+                if case .user(_, let isCurrentUser) = entry, isCurrentUser {
                     RoundedRectangle(cornerRadius: 16)
                         .stroke(Color.oceanTurquoise.opacity(0.5), lineWidth: 1.5)
                 }
@@ -223,8 +216,8 @@ struct LeaderboardCard: View {
     @ViewBuilder
     private var portrait: some View {
         switch entry {
-        case .pirate(let p):
-            AsyncImage(url: URL(string: p.imageURL)) { image in
+        case .pirate(let pirate):
+            AsyncImage(url: URL(string: pirate.imageURL)) { image in
                 image.resizable().scaledToFill()
             } placeholder: {
                 Color.surfaceTertiary
@@ -233,12 +226,12 @@ struct LeaderboardCard: View {
             .clipShape(RoundedRectangle(cornerRadius: 8))
             .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.goldRoger.opacity(0.3), lineWidth: 1))
 
-        case .user(let u, _):
+        case .user(let user, _):
             ZStack {
                 RoundedRectangle(cornerRadius: 8)
                     .fill(Color.oceanTurquoise.opacity(0.2))
                     .frame(width: 52, height: 52)
-                Text(String(u.displayName.prefix(1)).uppercased())
+                Text(String(user.displayName.prefix(1)).uppercased())
                     .font(VivreFont.heading(22))
                     .foregroundColor(.oceanTurquoise)
             }
@@ -258,8 +251,8 @@ struct LeaderboardCard: View {
                     .padding(.vertical, 3)
                     .background(RoundedRectangle(cornerRadius: 4).stroke(Color.strawHatRed, lineWidth: 1))
             }
-        case .user(let u, _):
-            if let crew = u.crewName {
+        case .user(let user, _):
+            if let crew = user.crewName {
                 Text(crew)
                     .font(VivreFont.label(9))
                     .foregroundColor(.sunsetOrange)
@@ -267,6 +260,7 @@ struct LeaderboardCard: View {
                     .padding(.vertical, 3)
                     .background(RoundedRectangle(cornerRadius: 4).stroke(Color.sunsetOrange, lineWidth: 1))
                     .lineLimit(1)
+                    .frame(maxWidth: 86)
             }
         }
     }

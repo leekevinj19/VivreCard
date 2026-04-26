@@ -3,6 +3,7 @@ import SwiftUI
 struct MainTabView: View {
     @StateObject private var locationService = LocationService()
     @State private var selectedTab: Tab = .friends
+    @State private var selectedFriend: LiveFriend?
     
     enum Tab: String, CaseIterable {
         case friends = "Friends"
@@ -22,15 +23,15 @@ struct MainTabView: View {
     
     var body: some View {
         ZStack(alignment: .bottom) {
-            // Content
             Group {
                 switch selectedTab {
                 case .friends:
                     FriendListView(locationService: locationService, onNavigateToCompass: { friend in
+                        selectedFriend = friend
                         selectedTab = .compass
                     })
                 case .compass:
-                    CompassView(locationService: locationService)
+                    CompassView(locationService: locationService, selectedFriend: selectedFriend)
                 case .wanted:
                     FamousPiratesView()
                 case .profile:
@@ -39,7 +40,6 @@ struct MainTabView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             
-            // Custom Tab Bar
             CustomTabBar(selectedTab: $selectedTab)
         }
         .ignoresSafeArea(.keyboard)
@@ -54,7 +54,6 @@ struct MainTabView: View {
     }
 }
 
-// MARK: - Custom Tab Bar
 struct CustomTabBar: View {
     @Binding var selectedTab: MainTabView.Tab
     
@@ -69,7 +68,6 @@ struct CustomTabBar: View {
                     }
                 } label: {
                     VStack(spacing: 4) {
-                        // Special compass icon for the center tab
                         if tab == .compass {
                             ZStack {
                                 Circle()

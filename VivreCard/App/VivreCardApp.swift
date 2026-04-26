@@ -1,11 +1,9 @@
 import SwiftUI
 import FirebaseCore
-import FirebaseAuth
 
 @main
 struct VivreCardApp: App {
     @StateObject private var authViewModel = AuthViewModel()
-    @StateObject private var themeManager = ThemeManager()
     
     init() {
         FirebaseApp.configure()
@@ -15,7 +13,6 @@ struct VivreCardApp: App {
         WindowGroup {
             RootView()
                 .environmentObject(authViewModel)
-                .environmentObject(themeManager)
                 .preferredColorScheme(.light)
         }
     }

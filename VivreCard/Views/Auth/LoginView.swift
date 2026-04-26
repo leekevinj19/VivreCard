@@ -11,111 +11,105 @@ struct LoginView: View {
     
     var body: some View {
         GeometryReader { geo in
-        ScrollView {
-            VStack(spacing: 32) {
-                Spacer().frame(height: 60)
+            ScrollView {
+                VStack(spacing: 32) {
+                    Spacer().frame(height: 60)
 
-                // Header
-                VStack(spacing: 12) {
-                    ZStack {
-                        Circle()
-                            .fill(Color.goldRoger.opacity(0.1))
-                            .frame(width: 100, height: 100)
+                    VStack(spacing: 12) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.goldRoger.opacity(0.1))
+                                .frame(width: 100, height: 100)
 
-                        VivreCardPiece()
-                            .fill(Color.sandLight)
-                            .frame(width: 50, height: 50)
-                            .shadow(color: .goldRoger.opacity(0.4), radius: 8)
+                            VivreCardPiece()
+                                .fill(Color.sandLight)
+                                .frame(width: 50, height: 50)
+                                .shadow(color: .goldRoger.opacity(0.4), radius: 8)
+                        }
+
+                        Text("VIVRE CARD")
+                            .font(VivreFont.title(32))
+                            .foregroundColor(.white)
+                            .tracking(4)
+                            .shadow(color: .deepSea.opacity(0.5), radius: 8, y: 2)
+
+                        Text(isRegistering ? "Join the Crew" : "Welcome Back, Pirate")
+                            .font(VivreFont.body(15))
+                            .foregroundColor(.sandLight)
+                            .shadow(color: .deepSea.opacity(0.4), radius: 4, y: 1)
                     }
 
-                    Text("VIVRE CARD")
-                        .font(VivreFont.title(32))
-                        .foregroundColor(.white)
-                        .tracking(4)
-                        .shadow(color: .deepSea.opacity(0.5), radius: 8, y: 2)
+                    VStack(spacing: 16) {
+                        if isRegistering {
+                            VivreTextField(
+                                placeholder: "Pirate Name",
+                                text: $displayName,
+                                icon: "person.fill"
+                            )
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                        }
 
-                    Text(isRegistering ? "Join the Crew" : "Welcome Back, Pirate")
-                        .font(VivreFont.body(15))
-                        .foregroundColor(.sandLight)
-                        .shadow(color: .deepSea.opacity(0.4), radius: 4, y: 1)
-                }
-
-                // Form Fields
-                VStack(spacing: 16) {
-                    if isRegistering {
                         VivreTextField(
-                            placeholder: "Pirate Name",
-                            text: $displayName,
-                            icon: "person.fill"
+                            placeholder: "Email",
+                            text: $email,
+                            icon: "envelope.fill",
+                            keyboardType: .emailAddress,
+                            autocapitalization: .never
                         )
-                        .transition(.move(edge: .top).combined(with: .opacity))
+
+                        VivreTextField(
+                            placeholder: "Password",
+                            text: $password,
+                            icon: "lock.fill",
+                            isSecure: true
+                        )
+                    }
+                    .padding(.horizontal, 24)
+
+                    if let error = authViewModel.error {
+                        Text(error)
+                            .font(VivreFont.caption())
+                            .foregroundColor(.dangerRed)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
                     }
 
-                    VivreTextField(
-                        placeholder: "Email",
-                        text: $email,
-                        icon: "envelope.fill",
-                        keyboardType: .emailAddress,
-                        autocapitalization: .never
-                    )
-
-                    VivreTextField(
-                        placeholder: "Password",
-                        text: $password,
-                        icon: "lock.fill",
-                        isSecure: true
-                    )
-                }
-                .padding(.horizontal, 24)
-
-                // Error message
-                if let error = authViewModel.error {
-                    Text(error)
-                        .font(VivreFont.caption())
-                        .foregroundColor(.dangerRed)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 24)
-                }
-
-                // Buttons
-                VStack(spacing: 12) {
-                    Button {
-                        submit()
-                    } label: {
-                        HStack(spacing: 8) {
-                            if isSubmitting {
-                                ProgressView().tint(.textPrimary)
-                            } else {
-                                Text(isRegistering ? "Set Sail!" : "Board the Ship")
+                    VStack(spacing: 12) {
+                        Button {
+                            submit()
+                        } label: {
+                            HStack(spacing: 8) {
+                                if isSubmitting {
+                                    ProgressView().tint(.textPrimary)
+                                } else {
+                                    Text(isRegistering ? "Set Sail!" : "Board the Ship")
+                                }
                             }
                         }
-                    }
-                    .buttonStyle(PirateButtonStyle())
-                    .disabled(isSubmitting || !isFormValid)
-                    .opacity(isFormValid ? 1.0 : 0.5)
+                        .buttonStyle(PirateButtonStyle())
+                        .disabled(isSubmitting || !isFormValid)
+                        .opacity(isFormValid ? 1.0 : 0.5)
 
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.25)) {
-                            isRegistering.toggle()
-                            authViewModel.error = nil
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                isRegistering.toggle()
+                                authViewModel.error = nil
+                            }
+                        } label: {
+                            Text(isRegistering ? "Already a pirate? Sign In" : "New pirate? Join the Crew")
                         }
-                    } label: {
-                        Text(isRegistering ? "Already a pirate? Sign In" : "New pirate? Join the Crew")
+                        .buttonStyle(GhostButtonStyle())
                     }
-                    .buttonStyle(GhostButtonStyle())
-                }
-                .padding(.horizontal, 24)
+                    .padding(.horizontal, 24)
 
-                Spacer()
+                    Spacer()
+                }
+                .frame(width: geo.size.width)
             }
             .frame(width: geo.size.width)
+            .background(BeachBackground(style: .full).ignoresSafeArea())
         }
-        .frame(width: geo.size.width)
-        .background(BeachBackground(style: .full).ignoresSafeArea())
-        } // GeometryReader
     }
-    
-    // MARK: - Helpers
     
     private var isFormValid: Bool {
         let emailValid = email.contains("@") && email.contains(".")
@@ -137,7 +131,6 @@ struct LoginView: View {
     }
 }
 
-// MARK: - Custom Text Field
 struct VivreTextField: View {
     let placeholder: String
     @Binding var text: String

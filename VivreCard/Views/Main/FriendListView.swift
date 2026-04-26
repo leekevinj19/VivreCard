@@ -6,11 +6,6 @@ struct FriendListView: View {
     @ObservedObject private var firebase = FirebaseService.shared
     
     var onNavigateToCompass: (LiveFriend) -> Void
-    
-    @State private var searchEmail = ""
-    @State private var isSearching = false
-    @State private var searchResult: VivreUser?
-    @State private var searchError: String?
     @State private var showAddFriend = false
     @State private var showRequests = false
     
@@ -18,7 +13,6 @@ struct FriendListView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    // Page header
                     HStack(alignment: .bottom) {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Your Crew")
@@ -40,7 +34,6 @@ struct FriendListView: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
 
-                    // Incoming requests banner
                     if !firebase.incomingRequests.isEmpty {
                         RequestsBanner(count: firebase.incomingRequests.count) {
                             showRequests = true
@@ -48,7 +41,6 @@ struct FriendListView: View {
                         .padding(.horizontal, 16)
                     }
 
-                    // Friends list
                     if firebase.liveFriends.isEmpty {
                         EmptyCrewView()
                             .padding(.top, 60)
@@ -79,7 +71,6 @@ struct FriendListView: View {
         }
     }
     
-    // Sort: online first, then alphabetically
     private var sortedFriends: [LiveFriend] {
         firebase.liveFriends.sorted { a, b in
             if a.isOnline != b.isOnline { return a.isOnline }
@@ -88,7 +79,6 @@ struct FriendListView: View {
     }
 }
 
-// MARK: - Friend Card
 struct FriendCard: View {
     let friend: LiveFriend
     let userLocation: CLLocation?
@@ -101,7 +91,6 @@ struct FriendCard: View {
     
     var body: some View {
         HStack(spacing: 14) {
-            // Avatar
             ZStack {
                 Circle()
                     .fill(friend.isOnline ? Color.oceanTurquoise.opacity(0.2) : Color.surfaceTertiary)
@@ -111,7 +100,6 @@ struct FriendCard: View {
                     .font(VivreFont.heading(20))
                     .foregroundColor(friend.isOnline ? .oceanTurquoise : .offlineGray)
                 
-                // Online indicator
                 Circle()
                     .fill(friend.isOnline ? Color.onlineGreen : Color.offlineGray)
                     .frame(width: 12, height: 12)
@@ -121,7 +109,6 @@ struct FriendCard: View {
                     .offset(x: 18, y: 18)
             }
             
-            // Info
             VStack(alignment: .leading, spacing: 4) {
                 Text(friend.displayName)
                     .font(VivreFont.heading(16))
@@ -147,7 +134,6 @@ struct FriendCard: View {
             
             Spacer()
             
-            // Distance + Arrow
             VStack(alignment: .trailing, spacing: 4) {
                 Text(distance)
                     .font(VivreFont.heading(14))
@@ -171,7 +157,6 @@ struct FriendCard: View {
     }
 }
 
-// MARK: - Incoming Requests Banner
 struct RequestsBanner: View {
     let count: Int
     var onTap: () -> Void
@@ -204,7 +189,6 @@ struct RequestsBanner: View {
     }
 }
 
-// MARK: - Empty State
 struct EmptyCrewView: View {
     var body: some View {
         VStack(spacing: 16) {

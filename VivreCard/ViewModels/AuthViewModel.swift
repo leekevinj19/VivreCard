@@ -7,51 +7,21 @@ class AuthViewModel: ObservableObject {
     @Published var isLoading = true
     @Published var error: String?
     @Published var currentUID: String?
-    
+
     private let firebase = FirebaseService.shared
     private var authListener: AuthStateDidChangeListenerHandle?
-    
+
     init() {
         listenToAuthState()
     }
-    
-    private func listenToAuthState() {
-        authListener = Auth.auth().addStateDidChangeListener { [weak self] _, user in
-            guard let self = self else { return }
-            
-            DispatchQueue.main.async {
-                if let user = user {
-                    self.currentUID = user.uid
-                    self.isAuthenticated = true
-                    
-                    // Fetch user profile from Firestore
-                    Task {
-                        do {
-                            try await self.firebase.fetchCurrentUser(uid: user.uid)
-                            self.firebase.listenToFriends()
-                            self.firebase.listenToRequests()
-                        } catch {
-                            self.error = error.localizedDescription
-                        }
-                        await MainActor.run {
-                            self.isLoading = false
-                        }
-                    }
-                } else {
-                    self.currentUID = nil
-                    self.isAuthenticated = false
-                    self.isLoading = false
-                }
-            }
-        }
-    }
-    
-    // Sign Up
+
     func signUp(email: String, password: String, displayName: String) async {
-        await MainActor.run { self.error = nil }
-        
+        await MainActor.run {
+            error = nil
+        }
+
         do {
-            let _ = try await firebase.signUp(
+            _ = try await firebase.signUp(
                 email: email.lowercased().trimmingCharacters(in: .whitespaces),
                 password: password,
                 displayName: displayName.trimmingCharacters(in: .whitespaces)
@@ -62,11 +32,12 @@ class AuthViewModel: ObservableObject {
             }
         }
     }
-    
-    // Sign In
+
     func signIn(email: String, password: String) async {
-        await MainActor.run { self.error = nil }
-        
+        await MainActor.run {
+            error = nil
+        }
+
         do {
             try await firebase.signIn(
                 email: email.lowercased().trimmingCharacters(in: .whitespaces),
@@ -78,8 +49,7 @@ class AuthViewModel: ObservableObject {
             }
         }
     }
-    
-    // Sign Out
+
     func signOut() {
         do {
             try firebase.signOut()
@@ -87,10 +57,41 @@ class AuthViewModel: ObservableObject {
             self.error = error.localizedDescription
         }
     }
-    
+
     deinit {
-        if let listener = authListener {
-            Auth.auth().removeStateDidChangeListener(listener)
+        if let authListener {
+            Auth.auth().removeStateDidChangeListener(authListener)
+        }
+    }
+
+    private func listenToAuthState() {
+        authListener = Auth.auth().addStateDidChangeListener { [weak self] _, user in
+            guard let self else { return }
+
+            DispatchQueue.main.async {
+                if let user {
+                    self.currentUID = user.uid
+                    self.isAuthenticated = true
+
+                    Task {
+                        do {
+                            try await self.firebase.fetchCurrentUser(uid: user.uid)
+                            self.firebase.listenToFriends()
+                            self.firebase.listenToRequests()
+                        } catch {
+                            self.error = error.localizedDescription
+                        }
+
+                        await MainActor.run {
+                            self.isLoading = false
+                        }
+                    }
+                } else {
+                    self.currentUID = nil
+                    self.isAuthenticated = false
+                    self.isLoading = false
+                }
+            }
         }
     }
 }

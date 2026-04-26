@@ -1,105 +1,85 @@
 import SwiftUI
 import CoreLocation
 
-// MARK: - Vivre Card Piece Shape
-/// Custom shape that looks like a torn piece of paper (inspired by One Piece Vivre Cards)
 struct VivreCardPiece: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()
         let width = rect.width
         let height = rect.height
         let center = CGPoint(x: width / 2, y: height / 2)
-        
-        // Create an irregular polygon that looks like a torn piece of paper
+
         path.move(to: CGPoint(x: center.x, y: rect.minY + height * 0.1))
-        
-        // Top right (slightly jagged)
         path.addLine(to: CGPoint(x: center.x + width * 0.35, y: rect.minY + height * 0.15))
         path.addLine(to: CGPoint(x: center.x + width * 0.4, y: rect.minY + height * 0.25))
-        
-        // Right side
         path.addLine(to: CGPoint(x: rect.maxX - width * 0.1, y: center.y - height * 0.1))
         path.addLine(to: CGPoint(x: rect.maxX - width * 0.08, y: center.y + height * 0.05))
-        
-        // Bottom right
         path.addLine(to: CGPoint(x: center.x + width * 0.38, y: rect.maxY - height * 0.12))
         path.addLine(to: CGPoint(x: center.x + width * 0.3, y: rect.maxY - height * 0.08))
-        
-        // Bottom
         path.addLine(to: CGPoint(x: center.x, y: rect.maxY - height * 0.1))
-        
-        // Bottom left
         path.addLine(to: CGPoint(x: center.x - width * 0.3, y: rect.maxY - height * 0.08))
         path.addLine(to: CGPoint(x: center.x - width * 0.38, y: rect.maxY - height * 0.12))
-        
-        // Left side
         path.addLine(to: CGPoint(x: rect.minX + width * 0.08, y: center.y + height * 0.05))
         path.addLine(to: CGPoint(x: rect.minX + width * 0.1, y: center.y - height * 0.1))
-        
-        // Top left
         path.addLine(to: CGPoint(x: center.x - width * 0.4, y: rect.minY + height * 0.25))
         path.addLine(to: CGPoint(x: center.x - width * 0.35, y: rect.minY + height * 0.15))
-        
-        // Close path
         path.closeSubpath()
-        
+
         return path
     }
 }
 
 struct CompassView: View {
     @ObservedObject var locationService: LocationService
+    let selectedFriend: LiveFriend?
     @ObservedObject private var firebase = FirebaseService.shared
     @StateObject private var viewModel: CompassViewModel
-    
+
     @State private var showFriendPicker = false
-    @State private var paperFlicker: Bool = false
-    
-    init(locationService: LocationService) {
+    @State private var paperFlicker = false
+
+    init(locationService: LocationService, selectedFriend: LiveFriend? = nil) {
         self.locationService = locationService
+        self.selectedFriend = selectedFriend
         _viewModel = StateObject(wrappedValue: CompassViewModel(locationService: locationService))
     }
-    
+
     var body: some View {
         VStack(spacing: 0) {
-            // Header
             headerSection
                 .padding(.top, 16)
 
             Spacer()
 
-            // The Vivre Card Compass
             vivreCardCompass
 
             Spacer()
 
-            // Distance & Direction Info
             if viewModel.isTracking {
                 infoPanel
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
-            // Friend selector button
             selectFriendButton
                 .padding(.bottom, 100)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(backgroundGradient.ignoresSafeArea())
+        .background(backgroundView.ignoresSafeArea())
+        .onAppear {
+            syncSelection()
+        }
+        .onChange(of: selectedFriend?.id) { _, _ in
+            syncSelection()
+        }
     }
-    
-    // MARK: - Background
-    private var backgroundGradient: some View {
+
+    private var backgroundView: some View {
         ZStack {
             BeachBackground(style: .soft)
                 .ignoresSafeArea()
-            
-            // Subtle radial glow behind the compass
+
             if viewModel.isTracking {
                 RadialGradient(
-                    colors: [
-                        Color.goldRoger.opacity(0.08),
-                        Color.clear
-                    ],
+                    colors: [Color.goldRoger.opacity(0.08), .clear],
                     center: .center,
                     startRadius: 50,
                     endRadius: 300
@@ -108,20 +88,19 @@ struct CompassView: View {
             }
         }
     }
-    
-    // MARK: - Header
+
     private var headerSection: some View {
         VStack(spacing: 4) {
             Text("VIVRE CARD")
                 .font(VivreFont.label(12))
                 .foregroundColor(.goldRoger)
                 .tracking(4)
-            
+
             if let friend = viewModel.selectedFriend {
                 Text(friend.displayName)
                     .font(VivreFont.title(24))
                     .foregroundColor(.textPrimary)
-                
+
                 HStack(spacing: 4) {
                     Circle()
                         .fill(friend.isOnline ? Color.onlineGreen : Color.offlineGray)
@@ -137,14 +116,11 @@ struct CompassView: View {
             }
         }
     }
-    
-    // MARK: - The Vivre Card Compass (Core Feature)
+
     private var vivreCardCompass: some View {
         ZStack {
-            // Outer compass ring
             compassRing
-            
-            // The vivre card paper piece — rotates to point at friend
+
             VivreCardPiece()
                 .fill(
                     LinearGradient(
@@ -159,7 +135,6 @@ struct CompassView: View {
                 )
                 .shadow(color: .goldRoger.opacity(0.3), radius: 12)
                 .overlay(
-                    // Burn edge glow effect
                     VivreCardPiece()
                         .stroke(Color.sunsetOrange.opacity(paperFlicker ? 0.6 : 0.2), lineWidth: 2)
                         .frame(
@@ -170,8 +145,7 @@ struct CompassView: View {
                 .rotationEffect(viewModel.arrowAngle)
                 .animation(.easeInOut(duration: 0.4), value: viewModel.arrowRotation)
                 .animation(.easeInOut(duration: 0.6), value: viewModel.cardBurnAmount)
-            
-            // Small directional arrow on the card
+
             if viewModel.isTracking {
                 Image(systemName: "arrowtriangle.up.fill")
                     .font(.system(size: 14))
@@ -188,28 +162,24 @@ struct CompassView: View {
             }
         }
     }
-    
-    // MARK: - Compass Ring Decoration
+
     private var compassRing: some View {
         ZStack {
-            // Outer ring
             Circle()
                 .stroke(Color.goldRoger.opacity(0.2), lineWidth: 1)
                 .frame(width: 240, height: 240)
-            
-            // Cardinal direction marks
+
             ForEach(0..<4) { i in
                 let labels = ["N", "E", "S", "W"]
                 let angle = Double(i) * 90
-                
+
                 Text(labels[i])
                     .font(VivreFont.label(11))
                     .foregroundColor(i == 0 ? .strawHatRed : .textSecondary.opacity(0.4))
                     .offset(y: -128)
                     .rotationEffect(.degrees(angle))
             }
-            
-            // Tick marks
+
             ForEach(0..<36) { i in
                 Rectangle()
                     .fill(i % 9 == 0 ? Color.goldRoger.opacity(0.4) : Color.textSecondary.opacity(0.15))
@@ -217,66 +187,38 @@ struct CompassView: View {
                     .offset(y: -113)
                     .rotationEffect(.degrees(Double(i) * 10))
             }
-            
-            // Inner ring
+
             Circle()
                 .stroke(Color.textSecondary.opacity(0.1), lineWidth: 0.5)
                 .frame(width: 180, height: 180)
         }
     }
-    
-    // MARK: - Info Panel
+
     private var infoPanel: some View {
         HStack(spacing: 32) {
-            // Distance
-            VStack(spacing: 4) {
-                Text("DISTANCE")
-                    .font(VivreFont.label(10))
-                    .foregroundColor(.textSecondary.opacity(0.5))
-                    .tracking(2)
-                Text(viewModel.distanceText)
-                    .font(VivreFont.heading(22))
-                    .foregroundColor(.goldRoger)
-            }
-            
-            // Divider
+            metricView(title: "DISTANCE", value: viewModel.distanceText, color: .goldRoger)
+
             Rectangle()
                 .fill(Color.textSecondary.opacity(0.2))
                 .frame(width: 1, height: 40)
-            
-            // Direction
-            VStack(spacing: 4) {
-                Text("DIRECTION")
-                    .font(VivreFont.label(10))
-                    .foregroundColor(.textSecondary.opacity(0.5))
-                    .tracking(2)
-                Text(viewModel.directionLabel)
-                    .font(VivreFont.heading(22))
-                    .foregroundColor(.logPoseBlue)
-            }
-            
-            // Divider
+
+            metricView(title: "DIRECTION", value: viewModel.directionLabel, color: .logPoseBlue)
+
             Rectangle()
                 .fill(Color.textSecondary.opacity(0.2))
                 .frame(width: 1, height: 40)
-            
-            // Card size indicator
-            VStack(spacing: 4) {
-                Text("CARD")
-                    .font(VivreFont.label(10))
-                    .foregroundColor(.textSecondary.opacity(0.5))
-                    .tracking(2)
-                Text("\(Int(viewModel.cardBurnAmount * 100))%")
-                    .font(VivreFont.heading(22))
-                    .foregroundColor(.sunsetOrange)
-            }
+
+            metricView(
+                title: "CARD",
+                value: "\(Int(viewModel.cardBurnAmount * 100))%",
+                color: .sunsetOrange
+            )
         }
         .padding(.vertical, 16)
         .padding(.horizontal, 24)
         .textPrimaryCard()
     }
-    
-    // MARK: - Friend Picker Button
+
     private var selectFriendButton: some View {
         VStack(spacing: 10) {
             Button {
@@ -292,18 +234,18 @@ struct CompassView: View {
                 isWide: false
             ))
 
-            // DEBUG: test compass without a real friend
             Button {
-                let mockFriend = LiveFriend(
-                    id: "test-luffy",
-                    displayName: "Monkey D. Luffy",
-                    crewName: "Straw Hat Pirates",
-                    pirateBounty: 3_000_000_000,
-                    coordinate: CLLocationCoordinate2D(latitude: 35.6762, longitude: 139.6503), // Tokyo
-                    isOnline: true,
-                    lastSeen: Date()
+                viewModel.selectFriend(
+                    LiveFriend(
+                        id: "test-luffy",
+                        displayName: "Monkey D. Luffy",
+                        crewName: "Straw Hat Pirates",
+                        pirateBounty: 3_000_000_000,
+                        coordinate: CLLocationCoordinate2D(latitude: 35.6762, longitude: 139.6503),
+                        isOnline: true,
+                        lastSeen: Date()
+                    )
                 )
-                viewModel.selectFriend(mockFriend)
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "flask.fill")
@@ -321,15 +263,34 @@ struct CompassView: View {
             }
         }
     }
+
+    private func syncSelection() {
+        guard let selectedFriend else { return }
+
+        if viewModel.selectedFriend?.id != selectedFriend.id {
+            viewModel.selectFriend(selectedFriend)
+        }
+    }
+
+    private func metricView(title: String, value: String, color: Color) -> some View {
+        VStack(spacing: 4) {
+            Text(title)
+                .font(VivreFont.label(10))
+                .foregroundColor(.textSecondary.opacity(0.5))
+                .tracking(2)
+            Text(value)
+                .font(VivreFont.heading(22))
+                .foregroundColor(color)
+        }
+    }
 }
 
-// MARK: - Friend Picker Sheet
 struct FriendPickerSheet: View {
     let friends: [LiveFriend]
     var onSelect: (LiveFriend) -> Void
-    
+
     @Environment(\.dismiss) private var dismiss
-    
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -359,7 +320,7 @@ struct FriendPickerSheet: View {
                                             .font(VivreFont.heading(16))
                                             .foregroundColor(friend.isOnline ? .oceanTurquoise : .offlineGray)
                                     )
-                                
+
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(friend.displayName)
                                         .font(VivreFont.heading(15))
@@ -368,9 +329,9 @@ struct FriendPickerSheet: View {
                                         .font(VivreFont.caption(12))
                                         .foregroundColor(friend.isOnline ? .onlineGreen : .offlineGray)
                                 }
-                                
+
                                 Spacer()
-                                
+
                                 Image(systemName: "location.fill")
                                     .foregroundColor(.goldRoger)
                             }

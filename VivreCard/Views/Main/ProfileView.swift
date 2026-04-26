@@ -11,7 +11,6 @@ struct ProfileView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    // Page title
                     HStack {
                         Text("Profile")
                             .font(VivreFont.title(26))
@@ -21,16 +20,12 @@ struct ProfileView: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
 
-                    // Profile Header
                     profileHeader
 
-                    // Stats Cards
                     statsSection
 
-                    // Settings
                     settingsSection
 
-                    // Sign Out
                     Button {
                         showSignOutConfirmation = true
                     } label: {
@@ -60,10 +55,8 @@ struct ProfileView: View {
         }
     }
     
-    // MARK: - Profile Header
     private var profileHeader: some View {
         VStack(spacing: 16) {
-            // Avatar
             ZStack {
                 Circle()
                     .fill(
@@ -79,7 +72,6 @@ struct ProfileView: View {
                     .font(VivreFont.title(36))
                     .foregroundColor(.textPrimary)
                 
-                // Gold ring
                 Circle()
                     .stroke(Color.goldRoger.opacity(0.4), lineWidth: 2)
                     .frame(width: 94, height: 94)
@@ -108,12 +100,11 @@ struct ProfileView: View {
         .padding(.vertical, 24)
     }
     
-    // MARK: - Stats
     private var statsSection: some View {
         HStack(spacing: 12) {
             StatCard(
                 title: "BOUNTY",
-                value: formatBounty(firebase.currentUser?.pirateBounty ?? 0),
+                value: BountyFormatter.compact(firebase.currentUser?.pirateBounty ?? 0),
                 icon: "star.fill",
                 color: .goldRoger
             )
@@ -135,7 +126,6 @@ struct ProfileView: View {
         .padding(.horizontal, 16)
     }
     
-    // MARK: - Settings
     private var settingsSection: some View {
         VStack(spacing: 2) {
             SettingsRow(icon: "person.fill", title: "Edit Pirate Name", color: .textPrimary) {
@@ -158,7 +148,6 @@ struct ProfileView: View {
         }
     }
     
-    // MARK: - Helpers
     private var memberSince: String {
         guard let date = firebase.currentUser?.createdAt else { return "---" }
         let formatter = DateFormatter()
@@ -166,17 +155,8 @@ struct ProfileView: View {
         return formatter.string(from: date)
     }
     
-    private func formatBounty(_ bounty: Int) -> String {
-        if bounty >= 1_000_000 {
-            return String(format: "%.1fM", Double(bounty) / 1_000_000)
-        } else if bounty >= 1000 {
-            return String(format: "%.0fK", Double(bounty) / 1000)
-        }
-        return "\(bounty)"
-    }
 }
 
-// MARK: - Edit Name Sheet
 struct EditNameSheet: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var firebase = FirebaseService.shared
@@ -271,7 +251,6 @@ struct EditNameSheet: View {
     }
 }
 
-// MARK: - Stat Card
 struct StatCard: View {
     let title: String
     let value: String
@@ -299,7 +278,6 @@ struct StatCard: View {
     }
 }
 
-// MARK: - Settings Row
 struct SettingsRow: View {
     let icon: String
     let title: String
