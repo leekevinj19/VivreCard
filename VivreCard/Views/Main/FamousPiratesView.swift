@@ -45,7 +45,11 @@ struct FamousPiratesView: View {
     @StateObject private var jikan = JikanService()
     @ObservedObject private var firebase = FirebaseService.shared
 
+    // added: search text to filter the leaderboard by name
+    @State private var searchText = ""
+
     // Merge users + famous pirates into one sorted list
+    // added: filters results by searchText if user is typing
     private var leaderboard: [LeaderboardEntry] {
         var entries: [LeaderboardEntry] = jikan.famousPirates.map { .pirate($0) }
 
@@ -76,7 +80,14 @@ struct FamousPiratesView: View {
             entries.append(.user(user, isCurrentUser: false))
         }
 
-        return entries.sorted { $0.bountyValue > $1.bountyValue }
+        // sort by bounty high to low
+        let sorted = entries.sorted { $0.bountyValue > $1.bountyValue }
+
+        // if search bar is empty return the full list
+        if searchText.isEmpty { return sorted }
+
+        // otherwise filter — case insensitive so "luffy" matches "Monkey D. Luffy"
+        return sorted.filter { $0.displayName.localizedCaseInsensitiveContains(searchText) }
     }
 
     var body: some View {
@@ -97,6 +108,29 @@ struct FamousPiratesView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
                 .padding(.bottom, 4)
+
+                // added: search bar to filter pirates and friends by name
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.textSecondary)
+                    TextField("Search pirates...", text: $searchText)
+                        .font(VivreFont.body(14))
+                        .foregroundColor(.textPrimary)
+                    // show X button to clear search when typing
+                    if !searchText.isEmpty {
+                        Button {
+                            searchText = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.textSecondary)
+                        }
+                    }
+                }
+                .padding(10)
+                .background(Color.surfaceTertiary.opacity(0.6))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, 16)
+                .padding(.bottom, 8)
 
                 if jikan.isLoading {
                     Spacer()
@@ -137,13 +171,26 @@ struct FamousPiratesView: View {
                             .foregroundColor(.textSecondary.opacity(0.5))
                             .padding(.vertical, 8)
 
-                            LazyVStack(spacing: 12) {
-                                ForEach(Array(leaderboard.enumerated()), id: \.element.id) { index, entry in
-                                    LeaderboardCard(entry: entry, rank: index + 1)
+                            // added: empty state when search has no results
+                            if leaderboard.isEmpty {
+                                VStack(spacing: 12) {
+                                    Text("🏴‍☠️")
+                                        .font(.system(size: 40))
+                                    Text("No pirates found for \"\(searchText)\"")
+                                        .font(VivreFont.body(14))
+                                        .foregroundColor(.textSecondary)
+                                        .multilineTextAlignment(.center)
                                 }
+                                .padding(.top, 40)
+                            } else {
+                                LazyVStack(spacing: 12) {
+                                    ForEach(Array(leaderboard.enumerated()), id: \.element.id) { index, entry in
+                                        LeaderboardCard(entry: entry, rank: index + 1)
+                                    }
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.bottom, 100)
                             }
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 100)
                         }
                         .frame(maxWidth: .infinity)
                     }
