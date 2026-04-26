@@ -1,7 +1,7 @@
 import SwiftUI
 import CoreLocation
 
-// MARK: - Leaderboard Entry (unified model for users + famous pirates)
+// Leaderboard Entry
 enum LeaderboardEntry: Identifiable {
     case user(VivreUser, isCurrentUser: Bool)
     case pirate(FamousPirate)
@@ -40,7 +40,7 @@ enum LeaderboardEntry: Identifiable {
     }
 }
 
-// MARK: - Famous Pirates View
+// Famous Pirates View
 struct FamousPiratesView: View {
     @StateObject private var jikan = JikanService()
     @ObservedObject private var firebase = FirebaseService.shared
@@ -205,7 +205,7 @@ struct FamousPiratesView: View {
     }
 }
 
-// MARK: - Unified Leaderboard Card
+// Leaderboard Card
 struct LeaderboardCard: View {
     let entry: LeaderboardEntry
     let rank: Int
